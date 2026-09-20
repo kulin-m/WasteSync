@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Citizen &amp; Driver Queries | WasteTrack 2026{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto">
+    
+    <!-- Header -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-inbox text-purple-600"></i> Issues &amp; Requests Management
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">Review public cleanliness complaints, new dustbin requests, and driver incident logs.</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-semibold">
+            <span class="text-slate-500">Filter Category:</span>
+            <select id="filter-query-type" onchange="loadQueries()" class="p-2 border border-slate-200 rounded-xl outline-none font-bold text-slate-700">
+                <option value="">All Categories</option>
+                <option value="cleanliness_issue">Cleanliness &amp; Overflow Complaints</option>
+                <option value="dustbin_request">New Dustbin Requests</option>
+                <option value="driver_issue">Driver Road / Truck Incidents</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Queries Feed Grid -->
+    <div id="queries-feed" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p class="text-xs text-slate-400 italic">Loading queries...</p>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadQueries() {
+        const type = document.getElementById('filter-query-type').value;
+        const url = type ? `/api/v1/queries?query_type=${type}` : '/api/v1/queries';
+
+        try {
+            const res = await fetch(url);
+            const queries = await res.json();
+            const feed = document.getElementById('queries-feed');
+            feed.innerHTML = '';
+
+            if (queries.length === 0) {
+                feed.innerHTML = '<div class="col-span-2 p-8 text-center bg-white rounded-2xl text-slate-400 text-xs font-bold border border-slate-200">No issues or requests found under this category.</div>';
+                return;
+            }
+
+            queries.forEach(q => {
+                let badgeColor = 'bg-red-50 text-red-700 border-red-200';
+                let icon = 'fa-solid fa-triangle-exclamation';
+                let typeLabel = 'Cleanliness Issue';
+
+                if (q.query_type === 'dustbin_request') {
+                    badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+                    icon = 'fa-solid fa-location-dot';
+                    typeLabel = 'New Dustbin Request';
+                } else if (q.query_type === 'driver_issue') {
+                    badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                    icon = 'fa-solid fa-truck-burst';
+                    typeLabel = 'Driver Incident';
+                }
+
+                let statusBadge = 'bg-yellow-100 text-yellow-800';
+                if (q.status === 'in_progress') statusBadge = 'bg-blue-100 text-blue-800';
+                else if (q.status === 'resolved') statusBadge = 'bg-emerald-100 text-emerald-800';
+
+                const dateStr = new Date(q.created_at).toLocaleString();
+
+                const card = document.createElement('div');
+                card.className = 'bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3 text-xs flex flex-col justify-between';
+                card.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${badgeColor}">
+                                <i class="${icon}"></i> ${typeLabel}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${statusBadge}">${q.status.replace('_', ' ')}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-slate-800 font-bold">
+                            <span><i class="fa-solid fa-user text-slate-400 mr-1"></i> ${q.citizen_name}</span>
+                            <span class="text-[10px] text-slate-400">${dateStr}</span>
+                        </div>
+                        <p class="text-slate-500 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-slate-400"></i> ${q.address}
+                            ${q.latitude ? `<span class="text-[10px] text-slate-400 font-mono">(${q.latitude.toFixed(4)}, ${q.longitude.toFixed(4)})</span>` : ''}
+                        </p>
+                        <p class="text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">${q.query_text}</p>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-400 font-bold">Update Status:</span>
+                        <div class="flex gap-1.5">
+                            <button onclick="updateQueryStatus(${q.id}, 'pending')" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 font-bold text-[10px]">Pending</button>
+                            <button onclick="updateQueryStatus(${q.id}, 'in_progress')" class="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold text-[10px]">In Progress</button>
+                            <button onclick="updateQueryStatus(${q.id}, 'resolved')" class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[10px]">Resolved</button>
+                        </div>
+                    </div>
+                `;
+                feed.appendChild(card);
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function updateQueryStatus(queryId, newStatus) {
+        try {
+            await fetch(`/api/v1/queries/${queryId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            loadQueries();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    loadQueries();
+</script>
+{% endblock %}

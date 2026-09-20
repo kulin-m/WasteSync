@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | WasteTrack 2026</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 p-8 space-y-6">
+        
+        <!-- Header -->
+        <div class="text-center space-y-2">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl mb-2 text-3xl border border-emerald-500/30">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+            </div>
+            <h1 class="text-2xl font-black tracking-tight text-white">WasteTrack 2026</h1>
+            <p class="text-xs text-slate-400">Intelligent Municipal Waste Monitoring &amp; Route Optimization</p>
+        </div>
+
+        <!-- 1-Click Demo Login Shortcuts -->
+        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/60 space-y-2">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center">
+                <i class="fa-solid fa-bolt mr-1.5"></i> 1-Click Demo Role Access
+            </p>
+            <div class="grid grid-cols-3 gap-2 text-xs font-semibold">
+                <button onclick="demoLogin('admin@wastetrack.org', 'admin123')" class="p-2.5 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 rounded-lg border border-emerald-500/30 transition flex flex-col items-center gap-1">
+                    <i class="fa-solid fa-user-shield text-base"></i>
+                    <span>Admin</span>
+                </button>
+                <button onclick="demoLogin('driver@wastetrack.org', 'driver123')" class="p-2.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded-lg border border-blue-500/30 transition flex flex-col items-center gap-1">
+                    <i class="fa-solid fa-truck text-base"></i>
+                    <span>Driver</span>
+                </button>
+                <button onclick="demoLogin('citizen@wastetrack.org', 'citizen123')" class="p-2.5 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 rounded-lg border border-purple-500/30 transition flex flex-col items-center gap-1">
+                    <i class="fa-solid fa-users text-base"></i>
+                    <span>Citizen</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Toggle -->
+        <div class="flex border-b border-slate-700 text-xs font-bold text-center">
+            <button id="tab-login-btn" onclick="switchTab('login')" class="flex-1 py-2 text-emerald-400 border-b-2 border-emerald-400">Sign In</button>
+            <button id="tab-register-btn" onclick="switchTab('register')" class="flex-1 py-2 text-slate-400 hover:text-slate-200">Citizen Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="form-login" class="space-y-4 text-xs">
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Email Address</label>
+                <input type="email" id="login-email" required placeholder="name@domain.com" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-white">
+            </div>
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Password</label>
+                <input type="password" id="login-password" required placeholder="••••••••" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-white">
+            </div>
+            <button type="submit" id="btn-submit-login" class="w-full p-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-900/30">
+                Sign In to Account
+            </button>
+        </form>
+
+        <!-- Citizen Register Form -->
+        <form id="form-register" class="space-y-3 text-xs hidden">
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Full Name</label>
+                <input type="text" id="reg-name" required placeholder="John Doe" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none text-white">
+            </div>
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Email Address</label>
+                <input type="email" id="reg-email" required placeholder="john@example.com" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none text-white">
+            </div>
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Mobile / Phone</label>
+                <input type="tel" id="reg-mobile" placeholder="9876543210" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none text-white">
+            </div>
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Address</label>
+                <input type="text" id="reg-address" placeholder="Sector 4, Pune" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none text-white">
+            </div>
+            <div>
+                <label class="block font-medium text-slate-300 mb-1">Password</label>
+                <input type="password" id="reg-password" required placeholder="••••••••" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none text-white">
+            </div>
+            <button type="submit" id="btn-submit-reg" class="w-full p-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition shadow-lg shadow-purple-900/30">
+                Create Citizen Account
+            </button>
+        </form>
+
+        <div id="auth-alert" class="hidden p-3 text-xs rounded-xl bg-red-900/50 border border-red-700 text-red-200"></div>
+
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            if (tab === 'login') {
+                document.getElementById('form-login').classList.remove('hidden');
+                document.getElementById('form-register').classList.add('hidden');
+                document.getElementById('tab-login-btn').className = 'flex-1 py-2 text-emerald-400 border-b-2 border-emerald-400';
+                document.getElementById('tab-register-btn').className = 'flex-1 py-2 text-slate-400 hover:text-slate-200';
+            } else {
+                document.getElementById('form-login').classList.add('hidden');
+                document.getElementById('form-register').classList.remove('hidden');
+                document.getElementById('tab-register-btn').className = 'flex-1 py-2 text-purple-400 border-b-2 border-purple-400';
+                document.getElementById('tab-login-btn').className = 'flex-1 py-2 text-slate-400 hover:text-slate-200';
+            }
+        }
+
+        async function performLogin(email, password) {
+            const alertBox = document.getElementById('auth-alert');
+            alertBox.classList.add('hidden');
+
+            const params = new URLSearchParams();
+            params.append('username', email);
+            params.append('password', password);
+
+            try {
+                const res = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alertBox.innerText = data.detail || 'Login failed. Please verify credentials.';
+                    alertBox.classList.remove('hidden');
+                    return;
+                }
+
+                // Save auth state in localStorage
+                localStorage.setItem('authToken', data.access_token);
+                localStorage.setItem('userRole', data.role);
+                localStorage.setItem('userName', data.name);
+                localStorage.setItem('userEmail', email);
+
+                // Redirect based on role
+                if (data.role === 'admin') {
+                    window.location.href = '/admin-dashboard';
+                } else if (data.role === 'driver') {
+                    window.location.href = '/driver-portal';
+                } else {
+                    window.location.href = '/citizen-portal';
+                }
+            } catch (err) {
+                alertBox.innerText = 'Network error during login.';
+                alertBox.classList.remove('hidden');
+            }
+        }
+
+        function demoLogin(email, password) {
+            document.getElementById('login-email').value = email;
+            document.getElementById('login-password').value = password;
+            performLogin(email, password);
+        }
+
+        document.getElementById('form-login').addEventListener('submit', (e) => {
+            e.preventDefault();
+            performLogin(document.getElementById('login-email').value, document.getElementById('login-password').value);
+        });
+
+        document.getElementById('form-register').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertBox = document.getElementById('auth-alert');
+            alertBox.classList.add('hidden');
+
+            const payload = {
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                mobile: document.getElementById('reg-mobile').value,
+                address: document.getElementById('reg-address').value,
+                password: document.getElementById('reg-password').value,
+                role: 'citizen'
+            };
+
+            try {
+                const res = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alertBox.innerText = data.detail || 'Registration failed.';
+                    alertBox.classList.remove('hidden');
+                    return;
+                }
+
+                // Automatically login newly registered citizen
+                performLogin(payload.email, payload.password);
+            } catch (err) {
+                alertBox.innerText = 'Registration error.';
+                alertBox.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

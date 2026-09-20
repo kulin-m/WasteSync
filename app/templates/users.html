@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}User Management | Admin Portal{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Top Header -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-users-gear text-blue-600"></i> User Role Management
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">Admin control center to create, view, and assign system roles across Admins, Truck Drivers, and Citizens.</p>
+        </div>
+        <button onclick="toggleUserModal(true)" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-sm">
+            <i class="fa-solid fa-user-plus"></i> Add New User
+        </button>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xs font-semibold">
+                <span class="text-slate-500">Filter Role:</span>
+                <select id="filter-role" onchange="loadUsers()" class="p-1.5 border border-slate-200 rounded-lg outline-none text-xs">
+                    <option value="">All Roles</option>
+                    <option value="admin">Administrators</option>
+                    <option value="driver">Drivers</option>
+                    <option value="citizen">Citizens</option>
+                </select>
+            </div>
+            <span class="text-xs font-bold text-slate-400" id="user-count-badge">0 Users Registered</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-100">
+                    <tr>
+                        <th class="p-4">User</th>
+                        <th class="p-4">Email</th>
+                        <th class="p-4">Role</th>
+                        <th class="p-4">Phone / Address</th>
+                        <th class="p-4">Joined Date</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body" class="divide-y divide-slate-100">
+                    <tr><td colspan="5" class="p-4 text-center text-slate-400">Loading users...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Add User Modal -->
+<div id="modal-add-user" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-md font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-user-plus text-blue-600"></i> Create New User Account
+            </h3>
+            <button onclick="toggleUserModal(false)" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form id="form-create-user" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Select User Role</label>
+                <select id="new-user-role" required class="w-full p-2.5 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:border-blue-500">
+                    <option value="driver">Truck Driver</option>
+                    <option value="citizen">Citizen</option>
+                    <option value="admin">System Administrator</option>
+                </select>
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Full Name</label>
+                <input type="text" id="new-user-name" required placeholder="e.g. Rajesh Patil" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Email Address</label>
+                <input type="email" id="new-user-email" required placeholder="rajesh@wastetrack.org" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Phone Number</label>
+                    <input type="tel" id="new-user-mobile" placeholder="9876543210" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Age</label>
+                    <input type="number" id="new-user-age" placeholder="32" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Address / Quarters</label>
+                <input type="text" id="new-user-address" placeholder="Depot Colony, Pune" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Password</label>
+                <input type="password" id="new-user-password" required placeholder="••••••••" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+            </div>
+            <div class="pt-2 flex gap-2">
+                <button type="button" onclick="toggleUserModal(false)" class="flex-1 p-2.5 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-600 transition">Cancel</button>
+                <button type="submit" class="flex-1 p-2.5 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl text-white transition">Save User</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleUserModal(show) {
+        const modal = document.getElementById('modal-add-user');
+        if (show) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    async function loadUsers() {
+        const role = document.getElementById('filter-role').value;
+        const url = role ? `/api/v1/auth/users?role=${role}` : '/api/v1/auth/users';
+        
+        try {
+            const res = await fetch(url);
+            const users = await res.json();
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+
+            document.getElementById('user-count-badge').innerText = `${users.length} Users Registered`;
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-400">No users found.</td></tr>';
+                return;
+            }
+
+            users.forEach(u => {
+                let roleBadge = 'bg-slate-100 text-slate-700 border-slate-200';
+                if (u.role === 'admin') roleBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                else if (u.role === 'driver') roleBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+                else if (u.role === 'citizen') roleBadge = 'bg-purple-50 text-purple-700 border-purple-200';
+
+                const dateStr = new Date(u.created_at || Date.now()).toLocaleDateString();
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50 transition';
+                row.innerHTML = `
+                    <td class="p-4 font-bold text-slate-800 flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-black">${u.name[0].toUpperCase()}</div>
+                        ${u.name}
+                    </td>
+                    <td class="p-4 font-mono text-[11px] text-slate-600">${u.email}</td>
+                    <td class="p-4">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${roleBadge}">${u.role}</span>
+                    </td>
+                    <td class="p-4 text-[11px] text-slate-500">${u.mobile || '-'} / ${u.address || '-'}</td>
+                    <td class="p-4 text-[11px] text-slate-400">${dateStr}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    document.getElementById('form-create-user').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            role: document.getElementById('new-user-role').value,
+            name: document.getElementById('new-user-name').value,
+            email: document.getElementById('new-user-email').value,
+            mobile: document.getElementById('new-user-mobile').value,
+            age: parseInt(document.getElementById('new-user-age').value) || null,
+            address: document.getElementById('new-user-address').value,
+            password: document.getElementById('new-user-password').value
+        };
+
+        const res = await fetch('/api/v1/auth/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            toggleUserModal(false);
+            document.getElementById('form-create-user').reset();
+            loadUsers();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Could not create user.');
+        }
+    });
+
+    loadUsers();
+</script>
+{% endblock %}

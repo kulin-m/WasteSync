@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | WasteTrack 2026{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Metrics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase font-semibold text-slate-400">Total Bins</p>
+                <h3 class="text-2xl font-extrabold text-slate-800" id="stat-total-bins">0</h3>
+            </div>
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+                <i class="fa-solid fa-dumpster"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase font-semibold text-slate-400">Overfilled Bins (&ge;70%)</p>
+                <h3 class="text-2xl font-extrabold text-red-600" id="stat-overfilled-bins">0</h3>
+            </div>
+            <div class="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase font-semibold text-slate-400">Registered Vehicles</p>
+                <h3 class="text-2xl font-extrabold text-emerald-600" id="stat-total-vehicles">0</h3>
+            </div>
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                <i class="fa-solid fa-truck"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase font-semibold text-slate-400">Drivers On Duty</p>
+                <h3 class="text-2xl font-extrabold text-purple-600" id="stat-total-drivers">0</h3>
+            </div>
+            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-xl">
+                <i class="fa-solid fa-id-card"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions & Map Container -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: Interactive Map & Search -->
+        <div class="lg:col-span-2 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h2 class="text-md font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-map-location-dot text-emerald-600 mr-2"></i> Real-time Bin Status Map (Chennai / VIT Zone)
+                </h2>
+                <div class="flex space-x-2 text-[10px] font-bold">
+                    <span class="inline-flex items-center px-2 py-0.5 bg-green-100 text-green-800 rounded-full">&le;20% Empty</span>
+                    <span class="inline-flex items-center px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">21-69% Normal</span>
+                    <span class="inline-flex items-center px-2 py-0.5 bg-red-100 text-red-800 rounded-full">&ge;70% Overfilled</span>
+                </div>
+            </div>
+
+            <!-- Map Location Search Bar -->
+            <div class="flex gap-2">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="map-search-input" placeholder="Search address, landmark or area (e.g. VIT Chennai, Kelambakkam, Vandalur)..." 
+                           class="w-full text-xs pl-8 pr-3 py-2 border border-slate-200 rounded-xl focus:border-emerald-500 outline-none"
+                           onkeydown="if(event.key==='Enter') searchLocation()">
+                </div>
+                <button onclick="searchLocation()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-crosshairs"></i> Search
+                </button>
+            </div>
+
+            <!-- Leaflet Map Element -->
+            <div id="map" class="w-full h-[480px] rounded-xl border border-slate-100 z-0"></div>
+        </div>
+
+        <!-- Right: Management Forms -->
+        <div class="space-y-6">
+            
+            <!-- Quick Add Bin Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-md font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fa-solid fa-plus-circle text-emerald-600 mr-2"></i> Add New Bin Location
+                </h3>
+                <form id="form-add-bin" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Latitude &amp; Longitude (Click Map to Pin)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" step="any" id="bin-lat" placeholder="Latitude (e.g. 12.8406)" required class="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-1 focus:ring-emerald-500 outline-none">
+                            <input type="number" step="any" id="bin-lon" placeholder="Longitude (e.g. 80.1534)" required class="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-1 focus:ring-emerald-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Capacity (Liters)</label>
+                            <input type="number" id="bin-capacity" value="100" required class="w-full text-xs p-2.5 border border-slate-200 rounded-xl outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Max Height (cm)</label>
+                            <input type="number" id="bin-height" value="120" required class="w-full text-xs p-2.5 border border-slate-200 rounded-xl outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Address / Landmark</label>
+                        <input type="text" id="bin-address" placeholder="e.g. VIT Food Street, Vandalur-Kelambakkam Rd" class="w-full text-xs p-2.5 border border-slate-200 rounded-xl outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition">Add Bin to System</button>
+                </form>
+            </div>
+
+            <!-- Quick Add Vehicle Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <h3 class="text-md font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fa-solid fa-truck text-emerald-600 mr-2"></i> Register Truck Vehicle
+                </h3>
+                <form id="form-add-vehicle" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Vehicle Registration Number</label>
+                        <input type="text" id="v-number" placeholder="e.g. TN-11-GT-2026" required class="w-full text-xs p-2.5 border border-slate-200 rounded-xl outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Truck Capacity (Units)</label>
+                        <input type="number" id="v-capacity" value="500" required class="w-full text-xs p-2.5 border border-slate-200 rounded-xl outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl transition">Register Vehicle</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Default Map Center: VIT Chennai Campus (12.8406, 80.1534)
+    let map = L.map('map').setView([12.8406, 80.1534], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    setTimeout(() => { map.invalidateSize(); }, 250);
+    window.addEventListener('resize', () => map.invalidateSize());
+
+    let markersGroup = L.layerGroup().addTo(map);
+    let searchMarker = null;
+
+    async function searchLocation() {
+        const query = document.getElementById('map-search-input').value.trim();
+        if (!query) return;
+
+        try {
+            const res = await fetch(`/api/v1/routes/search-location?q=${encodeURIComponent(query)}`);
+            const results = await res.json();
+            if (results && results.length > 0) {
+                const lat = parseFloat(results[0].lat);
+                const lon = parseFloat(results[0].lon);
+                map.flyTo([lat, lon], 16, { duration: 1.5 });
+
+                if (searchMarker) map.removeLayer(searchMarker);
+                searchMarker = L.marker([lat, lon], {
+                    icon: L.divIcon({
+                        html: '<div style="background-color: #0f172a; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.6);"><i class="fa-solid fa-location-pin text-xs text-amber-400"></i></div>',
+                        className: '',
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
+                    })
+                }).addTo(map).bindPopup(`<b>${results[0].display_name}</b>`).openPopup();
+
+                document.getElementById('bin-lat').value = lat.toFixed(6);
+                document.getElementById('bin-lon').value = lon.toFixed(6);
+                document.getElementById('bin-address').value = results[0].display_name.split(',')[0];
+            } else {
+                alert('Location not found. Try searching with city name (e.g. VIT Chennai, Vandalur, Kelambakkam).');
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+        }
+    }
+
+    async function loadData() {
+        const binsRes = await fetch('/api/v1/bins');
+        const bins = await binsRes.json();
+
+        const vRes = await fetch('/api/v1/vehicles');
+        const vehicles = await vRes.json();
+
+        const dRes = await fetch('/api/v1/drivers');
+        const drivers = await dRes.json();
+
+        document.getElementById('stat-total-bins').innerText = bins.length;
+        const overfilled = bins.filter(b => b.status === 'overfilled');
+        document.getElementById('stat-overfilled-bins').innerText = overfilled.length;
+        document.getElementById('stat-total-vehicles').innerText = vehicles.length;
+        document.getElementById('stat-total-drivers').innerText = drivers.length;
+
+        markersGroup.clearLayers();
+        if (bins.length > 0) {
+            const bounds = [];
+            bins.forEach(b => {
+                let color = 'green';
+                if (b.status === 'overfilled') color = 'red';
+                else if (b.status === 'normal') color = 'gold';
+
+                const markerHtml = `<div style="background-color: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`;
+                const customIcon = L.divIcon({
+                    html: markerHtml,
+                    className: '',
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+
+                const marker = L.marker([b.latitude, b.longitude], { icon: customIcon }).addTo(markersGroup);
+                bounds.push([b.latitude, b.longitude]);
+
+                const popupContent = `
+                    <div class="text-xs p-1 space-y-1">
+                        <p class="font-bold text-slate-800">Bin #${b.id}</p>
+                        <p class="text-slate-600">${b.address || 'No address'}</p>
+                        <p class="font-semibold">Fill Level: ${b.fill_percentage.toFixed(1)}% (${b.status})</p>
+                        <div class="pt-1">
+                            <label class="text-[10px] text-slate-500">Simulate Sensor Level (cm):</label>
+                            <input type="range" min="0" max="${b.height}" value="${b.current_garbage_height}" 
+                                   onchange="updateTelemetry(${b.id}, this.value)" class="w-full">
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+            });
+            map.fitBounds(bounds, { padding: [40, 40] });
+        }
+    }
+
+    async function updateTelemetry(binId, heightVal) {
+        await fetch(`/api/v1/bins/${binId}/telemetry`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_garbage_height: parseFloat(heightVal) })
+        });
+        loadData();
+    }
+
+    document.getElementById('form-add-bin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            latitude: parseFloat(document.getElementById('bin-lat').value),
+            longitude: parseFloat(document.getElementById('bin-lon').value),
+            capacity: parseFloat(document.getElementById('bin-capacity').value),
+            height: parseFloat(document.getElementById('bin-height').value),
+            address: document.getElementById('bin-address').value
+        };
+        await fetch('/api/v1/bins', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        document.getElementById('form-add-bin').reset();
+        loadData();
+    });
+
+    document.getElementById('form-add-vehicle').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            vehicle_number: document.getElementById('v-number').value,
+            capacity: parseFloat(document.getElementById('v-capacity').value)
+        };
+        await fetch('/api/v1/vehicles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        document.getElementById('form-add-vehicle').reset();
+        loadData();
+    });
+
+    map.on('click', function(e) {
+        document.getElementById('bin-lat').value = e.latlng.lat.toFixed(6);
+        document.getElementById('bin-lon').value = e.latlng.lng.toFixed(6);
+    });
+
+    loadData();
+</script>
+{% endblock %}

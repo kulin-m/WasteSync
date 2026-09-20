@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Driver Portal | Route Navigation &amp; Collection{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Status Card -->
+    <div class="bg-gradient-to-r from-blue-900 via-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md border border-blue-800 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-2xl text-blue-300">
+                <i class="fa-solid fa-truck"></i>
+            </div>
+            <div>
+                <span class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">Active Driver Console &bull; Chennai Zone</span>
+                <h1 class="text-xl font-black mt-1" id="driver-welcome">Driver Workspace</h1>
+                <p class="text-xs text-blue-200/70">Execute daily CVRP collection route around VIT Chennai, mark emptied dustbins, and report en-route incidents.</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="triggerDriverRoute()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-blue-950/40">
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh Road Route
+            </button>
+            <button onclick="toggleDriverIssueModal(true)" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i> Report Incident
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left: Interactive Route Map -->
+        <div class="lg:col-span-2 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-location-crosshairs text-blue-600"></i> Turn-by-Turn Road Collection Navigation
+                </h3>
+                <span class="text-[11px] text-slate-400 font-semibold" id="route-stops-count">0 Stops Scheduled</span>
+            </div>
+
+            <!-- Map Search Bar -->
+            <div class="flex gap-2">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="driver-search-input" placeholder="Search landmark (e.g. VIT Chennai, Mambakkam, Kelambakkam)..." 
+                           class="w-full text-xs pl-8 pr-3 py-2 border border-slate-200 rounded-xl focus:border-blue-500 outline-none"
+                           onkeydown="if(event.key==='Enter') searchDriverLocation()">
+                </div>
+                <button onclick="searchDriverLocation()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-crosshairs"></i> Search
+                </button>
+            </div>
+
+            <div id="driver-map" class="w-full h-[480px] rounded-xl border border-slate-100 z-0"></div>
+        </div>
+
+        <!-- Right: Collection Bins Checklist -->
+        <div class="space-y-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center justify-between border-b border-slate-100 pb-3">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-emerald-600"></i> Target Bins Checklist</span>
+                    <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 font-bold" id="bins-remaining-badge">0 Pending</span>
+                </h3>
+
+                <div id="driver-bins-list" class="space-y-3 max-h-[440px] overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-400 italic">Loading collection targets...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Report Driver Issue Modal -->
+<div id="modal-driver-issue" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-md font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Report Route / Vehicle Incident
+            </h3>
+            <button onclick="toggleDriverIssueModal(false)" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form id="form-driver-issue" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Issue Category</label>
+                <select id="issue-category" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none font-bold text-slate-800">
+                    <option value="Vehicle Breakdown">Vehicle Engine / Mechanical Breakdown</option>
+                    <option value="Road Blocked / Traffic">Road Closed / Severe Obstacle</option>
+                    <option value="Damaged Dustbin">Damaged / Missing Dustbin Unit</option>
+                    <option value="Severe Overflow">Excessive Hazardous Waste at Site</option>
+                </select>
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Incident Location / Landmark</label>
+                <input type="text" id="issue-location" required placeholder="e.g. Near VIT North Gate" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Details &amp; Action Needed</label>
+                <textarea id="issue-details" rows="3" required placeholder="Explain the situation so the control center can re-route or dispatch assistance..." class="w-full p-2.5 border border-slate-200 rounded-xl outline-none"></textarea>
+            </div>
+            <div class="pt-2 flex gap-2">
+                <button type="button" onclick="toggleDriverIssueModal(false)" class="flex-1 p-2.5 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl text-slate-600 transition">Cancel</button>
+                <button type="submit" class="flex-1 p-2.5 bg-amber-600 hover:bg-amber-700 font-bold rounded-xl text-white transition">Submit Incident Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const driverName = localStorage.getItem('userName') || 'Driver';
+    document.getElementById('driver-welcome').innerText = `Welcome, ${driverName}`;
+
+    // Default Center: VIT Chennai (12.8406, 80.1534)
+    let driverMap = L.map('driver-map').setView([12.8406, 80.1534], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(driverMap);
+
+    setTimeout(() => { driverMap.invalidateSize(); }, 250);
+    window.addEventListener('resize', () => driverMap.invalidateSize());
+
+    let routeLayer = L.layerGroup().addTo(driverMap);
+    let searchMarker = null;
+
+    async function searchDriverLocation() {
+        const query = document.getElementById('driver-search-input').value.trim();
+        if (!query) return;
+
+        try {
+            const res = await fetch(`/api/v1/routes/search-location?q=${encodeURIComponent(query)}`);
+            const results = await res.json();
+            if (results && results.length > 0) {
+                const lat = parseFloat(results[0].lat);
+                const lon = parseFloat(results[0].lon);
+                driverMap.flyTo([lat, lon], 16, { duration: 1.5 });
+
+                if (searchMarker) driverMap.removeLayer(searchMarker);
+                searchMarker = L.marker([lat, lon]).addTo(driverMap).bindPopup(`<b>${results[0].display_name}</b>`).openPopup();
+            } else {
+                alert('Location not found. Try searching for VIT Chennai, Kelambakkam, or Vandalur.');
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+        }
+    }
+
+    function toggleDriverIssueModal(show) {
+        const modal = document.getElementById('modal-driver-issue');
+        if (show) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    async function triggerDriverRoute() {
+        try {
+            const res = await fetch('/api/v1/routes/generate', { method: 'POST' });
+            const data = await res.json();
+            loadDriverDashboard(data.routes);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function loadDriverDashboard(routesData = null) {
+        routeLayer.clearLayers();
+        const binsRes = await fetch('/api/v1/bins');
+        const bins = await binsRes.json();
+
+        const binsList = document.getElementById('driver-bins-list');
+        binsList.innerHTML = '';
+
+        const targetBins = bins.filter(b => b.fill_percentage > 20);
+        document.getElementById('bins-remaining-badge').innerText = `${targetBins.length} Pending`;
+
+        if (targetBins.length === 0) {
+            binsList.innerHTML = '<div class="p-6 text-center text-emerald-600 bg-emerald-50 rounded-xl text-xs font-bold"><i class="fa-solid fa-circle-check text-lg mb-1 block"></i> All bins currently underfilled! No collection needed right now.</div>';
+        }
+
+        const bounds = [];
+
+        // If road route is generated, draw road geometry
+        if (routesData) {
+            for (const [vId, rData] of Object.entries(routesData)) {
+                const roadPts = rData.road_geometry || (rData.waypoints ? rData.waypoints.map(wp => [wp.latitude, wp.longitude]) : []);
+                if (roadPts.length > 0) {
+                    L.polyline(roadPts, { color: '#2563eb', weight: 5, opacity: 0.85, lineJoin: 'round' }).addTo(routeLayer);
+                    bounds.push(...roadPts);
+                }
+            }
+        }
+
+        bins.forEach(b => {
+            let color = 'green';
+            if (b.status === 'overfilled') color = 'red';
+            else if (b.status === 'normal') color = 'gold';
+
+            const markerHtml = `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>`;
+            const icon = L.divIcon({ html: markerHtml, className: '', iconSize: [20, 20] });
+            L.marker([b.latitude, b.longitude], { icon: icon })
+             .bindPopup(`<b>Bin #${b.id}</b><br>${b.address || ''}<br><b>Fill: ${b.fill_percentage.toFixed(1)}%</b>`)
+             .addTo(routeLayer);
+
+            bounds.push([b.latitude, b.longitude]);
+        });
+
+        targetBins.forEach(b => {
+            const card = document.createElement('div');
+            card.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs';
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-800"><i class="fa-solid fa-dumpster text-blue-600 mr-1"></i> Bin #${b.id}</span>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${b.status === 'overfilled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${b.fill_percentage.toFixed(0)}% FULL</span>
+                </div>
+                <p class="text-[11px] text-slate-500">${b.address || 'Location Coordinates'}</p>
+                <button onclick="markBinEmptied(${b.id})" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-check-double"></i> Mark Collected &amp; Emptied
+                </button>
+            `;
+            binsList.appendChild(card);
+        });
+
+        if (bounds.length > 0) {
+            driverMap.fitBounds(bounds, { padding: [40, 40] });
+        }
+    }
+
+    async function markBinEmptied(binId) {
+        try {
+            const res = await fetch(`/api/v1/bins/${binId}/empty`, { method: 'POST' });
+            if (res.ok) {
+                loadDriverDashboard();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    document.getElementById('form-driver-issue').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            citizen_name: `Driver: ${driverName}`,
+            address: document.getElementById('issue-location').value,
+            query_text: `[${document.getElementById('issue-category').value}] ${document.getElementById('issue-details').value}`,
+            query_type: 'driver_issue'
+        };
+
+        const res = await fetch('/api/v1/queries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            toggleDriverIssueModal(false);
+            document.getElementById('form-driver-issue').reset();
+            alert('Incident successfully reported to the control center.');
+        }
+    });
+
+    loadDriverDashboard();
+</script>
+{% endblock %}

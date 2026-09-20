@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WasteTrack 2026 | Smart Waste Monitoring{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet.js CSS & JS (100% Free OpenStreetMap via high-availability CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        .leaflet-container {
+            font-family: inherit;
+            background-color: #f1f5f9;
+            width: 100% !important;
+        }
+        .leaflet-tile-pane {
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 flex flex-col min-h-screen">
+
+    <!-- Top Navbar -->
+    <nav class="bg-slate-900 text-white shadow-lg border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Brand / Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-emerald-500/20 border border-emerald-500/40 rounded-xl flex items-center justify-center text-emerald-400 text-xl">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-lg tracking-tight text-white flex items-center gap-2">
+                            WasteTrack <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">2026</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Role-Dynamic Navigation Links -->
+                <div id="nav-links" class="flex items-center space-x-2 text-xs font-semibold">
+                    <!-- Injected by JavaScript based on active userRole -->
+                </div>
+
+                <!-- User Profile Badge & Logout -->
+                <div class="flex items-center space-x-3">
+                    <div id="user-badge" class="hidden items-center space-x-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl">
+                        <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold" id="user-avatar">U</div>
+                        <div class="text-left">
+                            <p class="text-[11px] font-bold text-slate-200 leading-tight" id="nav-user-name">User</p>
+                            <p class="text-[9px] uppercase tracking-wider font-extrabold text-emerald-400 leading-tight" id="nav-user-role">Role</p>
+                        </div>
+                    </div>
+                    <button onclick="logout()" id="btn-logout" class="hidden text-xs bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/30 px-3 py-2 rounded-xl transition flex items-center gap-1.5 font-bold">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Logout</span>
+                    </button>
+                    <a href="/login" id="btn-login-nav" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span>Sign In</span>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        <p>Garbage Truck Monitoring &amp; Route Optimization System &copy; 2026 | Built with FastAPI, PostgreSQL &amp; OpenStreetMap</p>
+    </footer>
+
+    <script>
+        const token = localStorage.getItem('authToken');
+        const role = localStorage.getItem('userRole');
+        const name = localStorage.getItem('userName');
+
+        const navLinks = document.getElementById('nav-links');
+        const userBadge = document.getElementById('user-badge');
+        const btnLogout = document.getElementById('btn-logout');
+        const btnLoginNav = document.getElementById('btn-login-nav');
+
+        if (token && role) {
+            btnLoginNav.classList.add('hidden');
+            userBadge.classList.remove('hidden');
+            userBadge.classList.add('flex');
+            btnLogout.classList.remove('hidden');
+
+            document.getElementById('nav-user-name').innerText = name || 'User';
+            document.getElementById('nav-user-role').innerText = role;
+            document.getElementById('user-avatar').innerText = (name ? name[0] : 'U').toUpperCase();
+
+            if (role === 'admin') {
+                navLinks.innerHTML = `
+                    <a href="/admin-dashboard" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-chart-line text-emerald-400 mr-1"></i> Dashboard</a>
+                    <a href="/users-page" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-users text-blue-400 mr-1"></i> Manage Users</a>
+                    <a href="/routes-page" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-route text-emerald-400 mr-1"></i> Fleet CVRP Optimizer</a>
+                    <a href="/queries-page" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-inbox text-purple-400 mr-1"></i> All Queries</a>
+                    <a href="/docs" target="_blank" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white border border-slate-700"><i class="fa-solid fa-code text-amber-400 mr-1"></i> API</a>
+                `;
+            } else if (role === 'driver') {
+                navLinks.innerHTML = `
+                    <a href="/driver-portal" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-route text-blue-400 mr-1"></i> My Route &amp; Collections</a>
+                    <a href="/routes-page" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-map-location-dot text-emerald-400 mr-1"></i> Full Route Map</a>
+                `;
+            } else if (role === 'citizen') {
+                navLinks.innerHTML = `
+                    <a href="/citizen-portal" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-map-pin text-purple-400 mr-1"></i> Dustbin Finder &amp; Requests</a>
+                    <a href="/queries-page" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-comments text-emerald-400 mr-1"></i> Public Issues</a>
+                `;
+            }
+        } else {
+            navLinks.innerHTML = `
+                <a href="/login" class="hover:bg-slate-800 px-3 py-2 rounded-lg transition text-slate-300 hover:text-white"><i class="fa-solid fa-right-to-bracket text-emerald-400 mr-1"></i> Sign In</a>
+            `;
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

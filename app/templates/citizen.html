@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Citizen Portal | Find Dustbins &amp; Report Issues{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Citizen Welcome Banner -->
+    <div class="bg-gradient-to-r from-purple-900 via-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md border border-purple-800 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-2xl text-purple-300">
+                <i class="fa-solid fa-people-roof"></i>
+            </div>
+            <div>
+                <span class="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/30">Citizen Service Portal &bull; Chennai</span>
+                <h1 class="text-xl font-black mt-1" id="citizen-welcome">Welcome to CleanCity Portal</h1>
+                <p class="text-xs text-purple-200/70">Find neighborhood bins around VIT Chennai, report garbage overflows, or request the municipality to install a new dustbin at your location.</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="switchCitizenAction('cleanliness')" class="bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-red-950/40">
+                <i class="fa-solid fa-triangle-exclamation"></i> Report Dirty Area
+            </button>
+            <button onclick="switchCitizenAction('dustbin')" class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-purple-950/40">
+                <i class="fa-solid fa-location-dot"></i> Request New Dustbin
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left: Interactive Map -->
+        <div class="lg:col-span-2 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-purple-600"></i> Interactive Neighborhood Waste Map
+                </h3>
+                <div class="flex items-center gap-2 text-[10px] font-bold">
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full">&le;20% Empty/Available</span>
+                    <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">21-69% Normal</span>
+                    <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded-full">&ge;70% Overfilled</span>
+                </div>
+            </div>
+
+            <!-- Map Search Bar -->
+            <div class="flex gap-2">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="citizen-search-input" placeholder="Search area or landmark (e.g. VIT Chennai, Mambakkam, Kelambakkam)..." 
+                           class="w-full text-xs pl-8 pr-3 py-2 border border-slate-200 rounded-xl focus:border-purple-500 outline-none"
+                           onkeydown="if(event.key==='Enter') searchCitizenLocation()">
+                </div>
+                <button onclick="searchCitizenLocation()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-crosshairs"></i> Search
+                </button>
+            </div>
+
+            <p class="text-[11px] text-slate-400"><i class="fa-solid fa-hand-pointer text-purple-500 mr-1"></i> Tip: Click anywhere on the map to pin coordinates for reporting an issue or requesting a dustbin!</p>
+            <div id="citizen-map" class="w-full h-[480px] rounded-xl border border-slate-100 z-0"></div>
+        </div>
+
+        <!-- Right: Dynamic Form Container -->
+        <div class="space-y-6">
+
+            <!-- Cleanliness Report Form Card -->
+            <div id="card-cleanliness-form" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <i class="fa-solid fa-bullhorn text-red-600"></i> Report Overflow or Dirty Area
+                </h3>
+                <form id="form-citizen-cleanliness" class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Your Name</label>
+                        <input type="text" id="clean-name" required placeholder="Ananya Raman" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Pinned Coordinates (Click Map to Pin)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" step="any" id="clean-lat" placeholder="Latitude" class="w-full p-2 border border-slate-200 rounded-lg outline-none text-[11px]">
+                            <input type="number" step="any" id="clean-lon" placeholder="Longitude" class="w-full p-2 border border-slate-200 rounded-lg outline-none text-[11px]">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Location Address / Landmark</label>
+                        <input type="text" id="clean-address" required placeholder="e.g. Near VIT North Gate" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Describe Cleanliness Issue</label>
+                        <textarea id="clean-desc" rows="3" required placeholder="Describe overflowing garbage, foul smell, uncollected waste..." class="w-full p-2.5 border border-slate-200 rounded-xl outline-none"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition">Submit Overflow Report</button>
+                </form>
+            </div>
+
+            <!-- Dustbin Request Form Card -->
+            <div id="card-dustbin-form" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4 hidden">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <i class="fa-solid fa-location-dot text-purple-600"></i> Request New Dustbin Installation
+                </h3>
+                <form id="form-citizen-dustbin" class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Your Name</label>
+                        <input type="text" id="req-name" required placeholder="Ananya Raman" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Pinned Coordinates (Click Map to Pin)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" step="any" id="req-lat" placeholder="Latitude" class="w-full p-2 border border-slate-200 rounded-lg outline-none text-[11px]">
+                            <input type="number" step="any" id="req-lon" placeholder="Longitude" class="w-full p-2 border border-slate-200 rounded-lg outline-none text-[11px]">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Proposed Location Address</label>
+                        <input type="text" id="req-address" required placeholder="e.g. Bus Stop corner near VIT Campus" class="w-full p-2.5 border border-slate-200 rounded-xl outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Justification / Reason for New Bin</label>
+                        <textarea id="req-desc" rows="3" required placeholder="Explain why a new dustbin is needed in this spot (high student footfall, no nearby bins)..." class="w-full p-2.5 border border-slate-200 rounded-xl outline-none"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition">Submit Dustbin Request</button>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const citizenName = localStorage.getItem('userName') || 'Citizen';
+    document.getElementById('citizen-welcome').innerText = `Welcome, ${citizenName}`;
+    document.getElementById('clean-name').value = citizenName;
+    document.getElementById('req-name').value = citizenName;
+
+    // Default center: VIT Chennai Campus (12.8406, 80.1534)
+    let citizenMap = L.map('citizen-map').setView([12.8406, 80.1534], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(citizenMap);
+
+    setTimeout(() => { citizenMap.invalidateSize(); }, 250);
+    window.addEventListener('resize', () => citizenMap.invalidateSize());
+
+    let binsLayer = L.layerGroup().addTo(citizenMap);
+    let pinMarker = null;
+
+    async function searchCitizenLocation() {
+        const query = document.getElementById('citizen-search-input').value.trim();
+        if (!query) return;
+
+        try {
+            const res = await fetch(`/api/v1/routes/search-location?q=${encodeURIComponent(query)}`);
+            const results = await res.json();
+            if (results && results.length > 0) {
+                const lat = parseFloat(results[0].lat);
+                const lon = parseFloat(results[0].lon);
+                citizenMap.flyTo([lat, lon], 16, { duration: 1.5 });
+
+                document.getElementById('clean-lat').value = lat.toFixed(6);
+                document.getElementById('clean-lon').value = lon.toFixed(6);
+                document.getElementById('req-lat').value = lat.toFixed(6);
+                document.getElementById('req-lon').value = lon.toFixed(6);
+
+                if (pinMarker) citizenMap.removeLayer(pinMarker);
+                pinMarker = L.marker([lat, lon]).addTo(citizenMap).bindPopup(`<b>${results[0].display_name}</b>`).openPopup();
+            } else {
+                alert('Location not found. Try searching for VIT Chennai, Kelambakkam, or Vandalur.');
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+        }
+    }
+
+    function switchCitizenAction(action) {
+        if (action === 'cleanliness') {
+            document.getElementById('card-cleanliness-form').classList.remove('hidden');
+            document.getElementById('card-dustbin-form').classList.add('hidden');
+        } else {
+            document.getElementById('card-cleanliness-form').classList.add('hidden');
+            document.getElementById('card-dustbin-form').classList.remove('hidden');
+        }
+    }
+
+    async function loadCitizenMap() {
+        binsLayer.clearLayers();
+        const res = await fetch('/api/v1/bins');
+        const bins = await res.json();
+
+        const bounds = [];
+
+        bins.forEach(b => {
+            let color = 'green';
+            let label = 'Available (<20%)';
+            if (b.status === 'overfilled') { color = 'red'; label = 'Overfilled (>=70%)'; }
+            else if (b.status === 'normal') { color = 'gold'; label = 'Normally Filled'; }
+
+            const markerHtml = `<div style="background-color: ${color}; width: 18px; height: 18px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.4);"></div>`;
+            const icon = L.divIcon({ html: markerHtml, className: '', iconSize: [18, 18] });
+            
+            L.marker([b.latitude, b.longitude], { icon: icon })
+             .bindPopup(`<b>Public Dustbin #${b.id}</b><br>${b.address || 'Public Location'}<br>Status: <b>${label}</b> (${b.fill_percentage.toFixed(0)}%)`)
+             .addTo(binsLayer);
+
+            bounds.push([b.latitude, b.longitude]);
+        });
+
+        if (bounds.length > 0) {
+            citizenMap.fitBounds(bounds, { padding: [40, 40] });
+        }
+    }
+
+    citizenMap.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lon = e.latlng.lng.toFixed(6);
+
+        document.getElementById('clean-lat').value = lat;
+        document.getElementById('clean-lon').value = lon;
+        document.getElementById('req-lat').value = lat;
+        document.getElementById('req-lon').value = lon;
+
+        if (pinMarker) {
+            citizenMap.removeLayer(pinMarker);
+        }
+        pinMarker = L.marker([lat, lon], {
+            icon: L.divIcon({
+                html: '<div style="background-color: #9333ea; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"><i class="fa-solid fa-location-pin text-xs"></i></div>',
+                className: '',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            })
+        }).addTo(citizenMap).bindPopup('Pinned Issue / Proposed Location').openPopup();
+    });
+
+    document.getElementById('form-citizen-cleanliness').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            citizen_name: document.getElementById('clean-name').value,
+            address: document.getElementById('clean-address').value,
+            query_text: document.getElementById('clean-desc').value,
+            query_type: 'cleanliness_issue',
+            latitude: parseFloat(document.getElementById('clean-lat').value) || null,
+            longitude: parseFloat(document.getElementById('clean-lon').value) || null
+        };
+
+        const res = await fetch('/api/v1/queries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            document.getElementById('form-citizen-cleanliness').reset();
+            alert('Cleanliness report submitted successfully! The municipality has been notified.');
+        }
+    });
+
+    document.getElementById('form-citizen-dustbin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            citizen_name: document.getElementById('req-name').value,
+            address: document.getElementById('req-address').value,
+            query_text: `[New Dustbin Request] ${document.getElementById('req-desc').value}`,
+            query_type: 'dustbin_request',
+            latitude: parseFloat(document.getElementById('req-lat').value) || null,
+            longitude: parseFloat(document.getElementById('req-lon').value) || null
+        };
+
+        const res = await fetch('/api/v1/queries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            document.getElementById('form-citizen-dustbin').reset();
+            alert('New dustbin installation request submitted to the municipal planning department!');
+        }
+    });
+
+    loadCitizenMap();
+</script>
+{% endblock %}

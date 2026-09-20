@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Route Optimizer | Real-Road CVRP Engine{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    
+    <!-- Top Action Card -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">OSRM Road Geometry &bull; VIT Chennai Zone</span>
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 mt-1 flex items-center gap-2">
+                <i class="fa-solid fa-route text-emerald-600"></i> CVRP Shortest Road-Path Optimization
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">Calculates actual street-following navigation paths using OSRM Road Routing and Google OR-Tools capacity constraints.</p>
+        </div>
+        <button id="btn-generate-routes" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-xl transition flex items-center shadow-md gap-2">
+            <i class="fa-solid fa-bolt"></i> Compute Optimal Road Routes Now
+        </button>
+    </div>
+
+    <!-- Map & Route Output Container -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Interactive Route Map -->
+        <div class="lg:col-span-2 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col space-y-3">
+            
+            <!-- Map Search Bar -->
+            <div class="flex gap-2">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="route-search-input" placeholder="Search landmark (e.g. VIT Chennai, Kelambakkam, Vandalur)..." 
+                           class="w-full text-xs pl-8 pr-3 py-2 border border-slate-200 rounded-xl focus:border-emerald-500 outline-none"
+                           onkeydown="if(event.key==='Enter') searchRouteLocation()">
+                </div>
+                <button onclick="searchRouteLocation()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-crosshairs"></i> Search
+                </button>
+            </div>
+
+            <div id="route-map" class="w-full h-[500px] rounded-xl border border-slate-100"></div>
+        </div>
+
+        <!-- Generated Waypoints & Truck Routes Panel -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <h3 class="text-md font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-emerald-600"></i> Generated Vehicle Schedules
+            </h3>
+            <div id="route-schedule-list" class="space-y-3 max-h-[460px] overflow-y-auto text-xs">
+                <p class="text-slate-400 italic">Click "Compute Optimal Road Routes Now" to generate live turn-by-turn road routes for active trucks.</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Default Center: VIT Chennai Campus (12.8406, 80.1534)
+    let routeMap = L.map('route-map').setView([12.8406, 80.1534], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(routeMap);
+
+    setTimeout(() => { routeMap.invalidateSize(); }, 250);
+    window.addEventListener('resize', () => routeMap.invalidateSize());
+
+    let routeLayersGroup = L.layerGroup().addTo(routeMap);
+    let searchMarker = null;
+
+    const routeColors = ['#059669', '#2563eb', '#d97706', '#9333ea', '#dc2626'];
+
+    async function searchRouteLocation() {
+        const query = document.getElementById('route-search-input').value.trim();
+        if (!query) return;
+
+        try {
+            const res = await fetch(`/api/v1/routes/search-location?q=${encodeURIComponent(query)}`);
+            const results = await res.json();
+            if (results && results.length > 0) {
+                const lat = parseFloat(results[0].lat);
+                const lon = parseFloat(results[0].lon);
+                routeMap.flyTo([lat, lon], 16, { duration: 1.5 });
+
+                if (searchMarker) routeMap.removeLayer(searchMarker);
+                searchMarker = L.marker([lat, lon]).addTo(routeMap).bindPopup(`<b>${results[0].display_name}</b>`).openPopup();
+            } else {
+                alert('Location not found. Try searching for VIT Chennai, Kelambakkam, or Vandalur.');
+            }
+        } catch (err) {
+            console.error('Search error:', err);
+        }
+    }
+
+    document.getElementById('btn-generate-routes').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-generate-routes');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Solving CVRP Road Matrix...';
+
+        try {
+            const res = await fetch('/api/v1/routes/generate', { method: 'POST' });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.detail || 'Could not generate routes.');
+                return;
+            }
+
+            renderRoutes(data.routes);
+        } catch (err) {
+            alert('Error connecting to route optimization server.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-bolt mr-2"></i> Compute Optimal Road Routes Now';
+        }
+    });
+
+    function renderRoutes(routesDict) {
+        routeLayersGroup.clearLayers();
+        const scheduleContainer = document.getElementById('route-schedule-list');
+        scheduleContainer.innerHTML = '';
+
+        let colorIdx = 0;
+        const allBounds = [];
+
+        for (const [vehicleId, routeData] of Object.entries(routesDict)) {
+            const color = routeColors[colorIdx % routeColors.length];
+            colorIdx++;
+
+            const waypoints = routeData.waypoints || routeData;
+            const roadGeometry = routeData.road_geometry || waypoints.map(wp => [wp.latitude, wp.longitude]);
+
+            allBounds.push(...roadGeometry);
+
+            // 1. Draw Real Road-Following Polyline (smooth road curves)
+            L.polyline(roadGeometry, {
+                color: color,
+                weight: 5,
+                opacity: 0.85,
+                lineJoin: 'round'
+            }).addTo(routeLayersGroup);
+
+            // 2. Draw Numbered Waypoint Markers at stops
+            waypoints.forEach((wp, idx) => {
+                const isDepot = wp.is_depot;
+                const iconHtml = `<div style="background-color: ${isDepot ? '#0f172a' : color}; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);">${isDepot ? '<i class=\"fa-solid fa-warehouse text-[9px]\"></i>' : idx}</div>`;
+                const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [22, 22], iconAnchor: [11, 11] });
+                
+                L.marker([wp.latitude, wp.longitude], { icon: customIcon })
+                 .bindPopup(`<b>${isDepot ? 'Depot (VIT Chennai)' : 'Bin Stop #' + idx}</b><br>Lat: ${wp.latitude.toFixed(4)}, Lon: ${wp.longitude.toFixed(4)}`)
+                 .addTo(routeLayersGroup);
+            });
+
+            // 3. Append to Schedule List Panel
+            const card = document.createElement('div');
+            card.className = 'p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2';
+            card.innerHTML = `
+                <div class="flex items-center justify-between font-bold" style="color: ${color};">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-truck"></i> Vehicle #${vehicleId} Route</span>
+                    <span class="text-[10px] bg-white px-2 py-0.5 rounded-full border border-slate-200 text-slate-700">${waypoints.length - 1} Road Stops</span>
+                </div>
+                <ol class="list-decimal list-inside text-[11px] text-slate-600 space-y-1">
+                    ${waypoints.map((wp, i) => `<li>${wp.is_depot ? '<span class=\"font-bold text-slate-800\">VIT Chennai Depot Start/End</span>' : `Bin Stop (${wp.latitude.toFixed(4)}, ${wp.longitude.toFixed(4)})`}</li>`).join('')}
+                </ol>
+            `;
+            scheduleContainer.appendChild(card);
+        }
+
+        if (allBounds.length > 0) {
+            routeMap.fitBounds(allBounds, { padding: [40, 40] });
+        }
+    }
+</script>
+{% endblock %}

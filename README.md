@@ -43,15 +43,7 @@ uvicorn app.main:app --reload
 
 ---
 
-## 🔑 Default Login Credentials
 
-| Role | Email | Password | Portal URL |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@wastetrack.org` | `admin123` | [http://127.0.0.1:8000/admin-dashboard](http://127.0.0.1:8000/admin-dashboard) |
-| **Driver** | `driver@wastetrack.org` | `driver123` | [http://127.0.0.1:8000/driver-portal](http://127.0.0.1:8000/driver-portal) |
-| **Citizen** | `citizen@wastetrack.org` | `citizen123` | [http://127.0.0.1:8000/citizen-portal](http://127.0.0.1:8000/citizen-portal) |
-
----
 
 ## 🗺️ Key Application Pages
 
@@ -86,6 +78,4 @@ WasteSync/
 
 ---
 
-## 📜 License
-This project is open-source and free to use under the MIT License.
 
